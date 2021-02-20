@@ -54,7 +54,7 @@ template<class H,class... T> void recursive_debug(string s, H h, T... t) {
 // -------- END : snippet -------- //
 struct Ride
 {
-    int sx,sy,gx,gy,s,f;
+    int id,sx,sy,gx,gy,s,f,ride_dist;
 };
 
 
@@ -65,8 +65,42 @@ int main(){
     vector<Ride> r(N);
     rep(i,N) {
         cin >> r[i].sx >> r[i].sy >> r[i].gx >> r[i].gy >> r[i].s >> r[i].f;
-        cout << abs(r[i].sx - r[i].gx) + abs(r[i].sy - r[i].gy) << endl;
+        r[i].id = i;
+        r[i].ride_dist = abs(r[i].sx - r[i].gx) + abs(r[i].sy - r[i].gy);
     }
-    
+    sort(all(r), [](Ride &a, Ride &b){ return a.ride_dist > b.ride_dist; });
+    queue<Ride> qu;
+    rep(i,N) qu.push(r[i]);
+    vector<int> last_t(F), last_x(F), last_y(F);
+    vector<vector<int>> res(F);
+    while(!qu.empty()) {
+        int Q = qu.size();
+        Ride cur = qu.front(); qu.pop();
+        int choose_i = -1;
+        int min_pickup_dist = 20000;
+        rep(i,F){
+            int pickup_dist = abs(cur.sx - last_x[i]) + abs(cur.sy - last_y[i]);
+            if (min_pickup_dist > pickup_dist && last_t[i] + pickup_dist + cur.ride_dist <= cur.f) {
+                min_pickup_dist = pickup_dist;
+                choose_i = i;
+            }
+        }
+        if (choose_i != -1) {
+            res[choose_i].push_back(cur.id);
+            int pickup_dist = abs(cur.sx - last_x[choose_i]) + abs(cur.sy - last_y[choose_i]);
+            last_t[choose_i] += pickup_dist + cur.ride_dist;
+            last_x[choose_i] = cur.gx;
+            last_y[choose_i] = cur.gy;
+        }
+    }
+
+    // output
+    rep(i,F) {
+        if (res[i].empty()) continue;
+        cout << res[i].size() << " ";
+        rep(j, res[i].size()) {
+            cout << res[i][j] << (j + 1 < (int)res[i].size() ? " " : "\n");
+        }
+    }
     return 0;
 }
