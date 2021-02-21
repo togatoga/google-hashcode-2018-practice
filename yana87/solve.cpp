@@ -52,12 +52,16 @@ template<class H,class... T> void recursive_debug(string s, H h, T... t) {
 // -------- END : debug macro -------- //
 
 // -------- END : snippet -------- //
-struct Ride
-{
+
+struct Ride {
     int id,sx,sy,gx,gy,s,f,ride_dist;
+    bool done;
+    vector<int> candidate;
 };
-
-
+struct Vehicle {
+    int id,x,y,t,best_ride_id,best_empty_time;
+    double best_benefit;
+};
 
 int main(){
     int X, Y, F, N, B, T;
@@ -67,31 +71,67 @@ int main(){
         cin >> r[i].sx >> r[i].sy >> r[i].gx >> r[i].gy >> r[i].s >> r[i].f;
         r[i].id = i;
         r[i].ride_dist = abs(r[i].sx - r[i].gx) + abs(r[i].sy - r[i].gy);
+        r[i].done = false;
     }
-    sort(all(r), [](Ride &a, Ride &b){ return a.ride_dist > b.ride_dist; });
-    queue<Ride> qu;
-    rep(i,N) qu.push(r[i]);
-    vector<int> last_t(F), last_x(F), last_y(F);
+
+    using P = pair<double,int>; // benefit, Vehicle.id
+    priority_queue<P> qu;
+    vector<Vehicle> v(F);
     vector<vector<int>> res(F);
-    while(!qu.empty()) {
-        int Q = qu.size();
-        Ride cur = qu.front(); qu.pop();
-        int choose_i = -1;
-        int min_pickup_dist = 20000;
-        rep(i,F){
-            int pickup_dist = abs(cur.sx - last_x[i]) + abs(cur.sy - last_y[i]);
-            if (min_pickup_dist > pickup_dist && last_t[i] + pickup_dist + cur.ride_dist <= cur.f) {
-                min_pickup_dist = pickup_dist;
-                choose_i = i;
+
+    auto calc_empty_time = [&](int vcl_id, int ride_id) {
+        if (vcl_id == -1 || ride_id == -1) return INF;
+        return max(abs(r[ride_id].sx - v[vcl_id].x) + abs(r[ride_id].sy - v[vcl_id].y), r[ride_id].s - v[vcl_id].t);
+    };
+
+    auto set_near = [&](Vehicle &vcl) {
+        double best_benefit = -INF;
+        int best_ride_id = -1;
+        rep(i,N){
+            if (r[i].done) continue;
+            int empty_time = calc_empty_time(vcl.id, i);
+            if (vcl.t + empty_time + r[i].ride_dist > r[i].f) continue;
+
+            // auto benefit = (double) r[i].ride_dist / empty_time;
+            auto benefit = - (double) empty_time;
+
+            if (best_benefit < benefit) {
+                best_benefit = benefit;
+                best_ride_id = i;
             }
         }
-        if (choose_i != -1) {
-            res[choose_i].push_back(cur.id);
-            int pickup_dist = abs(cur.sx - last_x[choose_i]) + abs(cur.sy - last_y[choose_i]);
-            last_t[choose_i] += pickup_dist + cur.ride_dist;
-            last_x[choose_i] = cur.gx;
-            last_y[choose_i] = cur.gy;
+        vcl.best_empty_time = calc_empty_time(vcl.id, best_ride_id);
+        vcl.best_benefit = best_benefit;
+        vcl.best_ride_id = best_ride_id;
+        if (vcl.best_ride_id != -1) {
+            r[best_ride_id].candidate.push_back(vcl.id);
+            qu.push({best_benefit, vcl.id});
         }
+    };
+
+    rep(i,F) {
+        v[i].id = i;
+        v[i].x = v[i].y = v[i].t = 0;
+        set_near(v[i]);
+    }
+    while(!qu.empty()) {
+        Vehicle &vcl = v[qu.top().second];
+        double old_benefit = qu.top().first;
+        qu.pop();
+        if (abs(vcl.best_benefit - old_benefit) > 1e-3) continue; 
+        if (vcl.best_ride_id == -1) continue;
+        Ride &ride = r[vcl.best_ride_id];
+        if (ride.done) continue;
+        vcl.t += vcl.best_empty_time + ride.ride_dist;
+        // debug(vcl.best_benefit, vcl.best_empty_time, ride.ride_dist);
+        vcl.x = ride.gx;
+        vcl.y = ride.gy;
+        ride.done = true;
+        for (int vcl_id : ride.candidate) {
+            set_near(v[vcl_id]);
+        }
+        set_near(vcl);
+        res[vcl.id].push_back(ride.id);
     }
 
     // output
