@@ -84,28 +84,30 @@ int main(){
         return max(abs(r[ride_id].sx - v[vcl_id].x) + abs(r[ride_id].sy - v[vcl_id].y), r[ride_id].s - v[vcl_id].t);
     };
 
+    // tuning
+    auto calc_benefit = [&](Vehicle &vcl, Ride &ride) {
+        int empty_time = calc_empty_time(vcl.id, ride.id);
+        return - (double) empty_time + (ride.ride_dist > 4000 ? ride.ride_dist/10.0 : 0.0);
+    };
+
     auto set_near = [&](Vehicle &vcl) {
-        double best_benefit = -INF;
-        int best_ride_id = -1;
+        vcl.best_ride_id = -1;
+        vcl.best_empty_time = INF;
+        vcl.best_benefit = -INF;
         rep(i,N){
             if (r[i].done) continue;
             int empty_time = calc_empty_time(vcl.id, i);
             if (vcl.t + empty_time + r[i].ride_dist > r[i].f) continue;
-
-            // auto benefit = (double) r[i].ride_dist / empty_time;
-            auto benefit = - (double) empty_time;
-
-            if (best_benefit < benefit) {
-                best_benefit = benefit;
-                best_ride_id = i;
+            auto benefit = calc_benefit(vcl, r[i]);
+            if (vcl.best_benefit < benefit) {
+                vcl.best_ride_id = i;
+                vcl.best_empty_time = empty_time;
+                vcl.best_benefit = benefit;
             }
         }
-        vcl.best_empty_time = calc_empty_time(vcl.id, best_ride_id);
-        vcl.best_benefit = best_benefit;
-        vcl.best_ride_id = best_ride_id;
         if (vcl.best_ride_id != -1) {
-            r[best_ride_id].candidate.push_back(vcl.id);
-            qu.push({best_benefit, vcl.id});
+            r[vcl.best_ride_id].candidate.push_back(vcl.id);
+            qu.push({vcl.best_benefit, vcl.id});
         }
     };
 
@@ -122,10 +124,9 @@ int main(){
         if (vcl.best_ride_id == -1) continue;
         Ride &ride = r[vcl.best_ride_id];
         if (ride.done) continue;
-        vcl.t += vcl.best_empty_time + ride.ride_dist;
-        // debug(vcl.best_benefit, vcl.best_empty_time, ride.ride_dist);
         vcl.x = ride.gx;
         vcl.y = ride.gy;
+        vcl.t += vcl.best_empty_time + ride.ride_dist;
         ride.done = true;
         for (int vcl_id : ride.candidate) {
             set_near(v[vcl_id]);
