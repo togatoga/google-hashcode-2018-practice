@@ -1,5 +1,8 @@
 # google-hashcode-2018-practice
 
+## Problem
+https://storage.googleapis.com/coding-competitions.appspot.com/HC/2018/hashcode2018_qualification_task.pdf
+
 ## Score
 https://github.com/PicoJr/2018-hashcode-score
 
@@ -9,7 +12,7 @@ https://github.com/PicoJr/2018-hashcode-score
 ```
 a_example.in
 score: 10
-solver: mochi, yana87
+solver: mochi, togatoga, yana87
 
 b_should_be_easy.in
 score: 176877
